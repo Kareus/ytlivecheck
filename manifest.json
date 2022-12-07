@@ -1,0 +1,18 @@
+{
+    "manifest_version": 3,
+    "name": "YoutubeLiveCheck",
+    "version": "1.0",
+    "description": "Check the youtube channel is live.",
+    "background": {
+        "service_worker": "background.js"
+    },
+    "minimum_chrome_version": "92",
+    "action": {
+    },
+    "permissions": [
+        "tabs", "activeTab", "alarms", "scripting", "notifications", "storage"
+    ],
+    "host_permissions": [
+        "<all_urls>"
+    ]
+  }
