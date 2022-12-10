@@ -54,3 +54,21 @@ chrome extension to check the youtube live, without login or subscribe.
 - API 안 쓰고 page 긁어오는 거라 언젠가는 작동 안 할 수도 있음.
 
   I did not used yt api, just crawling the page. cannot guarantee it will work later.
+
+- 브라우저 켜는 것 만으로는 얘가 작동을 안해서 켤때마다 체크하게 했는데, 그래서 켤때마다 알림이 나올 수 있음.
+
+  이거 수정하려면 video id 체크해서 저장하게 하든지 하면 되는데 리스트에 계속 쌓일 것도 그렇고
+
+  버그 체크한다고 자꾸 컴퓨터 껐다 키고 크롬 껐다 키고 하는 거 빡쳐서 그냥 냅둠. 별로 안 거슬릴 것 같기도 하고
+
+  checks when you start up the browser, so it can notify multiple times whenever you start up.
+
+  maybe I can fix it with checking the video id and store them to the storage, but it would make further troubles for me
+
+  (like video id stacks in list), and I am already tired of debugging, rebooting the computer and browser
+
+  so I am out. I think this is not much bothering.
+
+- 백그라운드에서 앱 실행이 꺼져 있으면 알림 배너와 소리가 재생되지 않으니 확인 바람.
+
+  google chrome does not show popup notification banners and play the sound, when the background app is disabled.
