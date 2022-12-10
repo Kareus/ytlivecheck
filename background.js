@@ -140,6 +140,8 @@ chrome.runtime.onStartup.addListener(function() {
         
       checkLive();
     }, 3000);
+
+    initialized = true;
   }
 });
 
