@@ -10,11 +10,18 @@ function saveSettings() {
 function loadSettings() {
   chrome.storage.local.get("channels").then((result) => {
     handle_list = result["channels"];
-    autoRemove_seconds = result["autoRemove"];
+    if (handle_list == undefined)
+    handle_list = [];
 
     console.log("successfully loaded: ", handle_list);
-    console.log("auto remove after: ", autoRemove_seconds, " seconds. (only positive value works)");
   });
+
+  chrome.storage.local.get("autoRemove").then((result) => {
+    autoRemove_seconds = result["autoRemove"];
+    if (autoRemove_seconds == undefined)
+      autoRemove_seconds = 0;
+    console.log("auto remove after: ", autoRemove_seconds, " seconds. (only positive value works)");
+  })
 }
 
 async function findLiveStream(handle, cb) {
@@ -25,9 +32,6 @@ async function findLiveStream(handle, cb) {
       'Accept-Language': 'en-US, en;q=0.5',
   }}).then((response) => response.text())
   .then((data) => {
-    if (!data.ok)
-      return;
-    
     var channelName = data.split('channelId')[1].split('title')[1].split('"')[2];
     var icon = data.split('avatar')[1].split('url')[1].split('"')[2];
     var arr = data.split('?v=');
@@ -74,8 +78,11 @@ function liveCallback(handle, idList, channelName, icon) {
         priority: 0,
         requireInteraction: true,
       }, function (id) {
-        if (autoRemove_seconds > 0)
-        setTimeout((id) => { chrome.notifications.clear(id);}, autoRemove_seconds * 1000);
+        //TODO: why my window suddenly doesn't alert me the message?
+        if (autoRemove_seconds != undefined && autoRemove_seconds > 0)
+        {
+          setTimeout((id) => { chrome.notifications.clear(id);}, autoRemove_seconds * 1000);
+        }
       });
     }
 }
@@ -115,7 +122,8 @@ chrome.alarms.onAlarm.addListener(function(alarm) {
   if (alarm.name == "livecheck")
   {
     checkLive();
-    saveSettings();
+    if (handle_list.length > 0)
+      saveSettings();
   }
 });
 
