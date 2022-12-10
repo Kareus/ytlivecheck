@@ -1,6 +1,7 @@
 var handle_list = [];
 var notified = [];
 var autoRemove_seconds = 0;
+var initialized = false;
 
 function saveSettings() {
   chrome.storage.local.set({"channels" : handle_list});
@@ -69,19 +70,20 @@ function liveCallback(handle, idList, channelName, icon) {
       //TODO: ui
       //TODO: notification inside the chrome?
 
+      //You should enable chrome background mode for popup banners and sounds.
       chrome.notifications.clear(handle);
       chrome.notifications.create(handle, {
         type: 'basic',
         iconUrl: icon,
+        eventTime: Date.now(),
         title: 'Youtube Live Notification',
         message: 'Youtube Channel ' + channelName + " is on live now.",
-        priority: 0,
+        priority: 1,
         requireInteraction: true,
       }, function (id) {
-        //TODO: why my window suddenly doesn't alert me the message?
         if (autoRemove_seconds != undefined && autoRemove_seconds > 0)
         {
-          setTimeout((id) => { chrome.notifications.clear(id);}, autoRemove_seconds * 1000);
+          setTimeout(() => { chrome.notifications.clear(handle);}, autoRemove_seconds * 1000);
         }
       });
     }
@@ -105,11 +107,13 @@ function checkLive() {
         var handle = handle_list[i];
         findLiveStream(handle, liveCallback);
     }
+
+    initialized = true;
 }
 
 function refresh(renotify = false) {
-  if (renotify)
-    notified.clear();
+  if (renotify == true)
+    notified = [];
 
   chrome.alarms.clear("livecheck");
   chrome.alarms.create("livecheck", {
@@ -124,6 +128,18 @@ chrome.alarms.onAlarm.addListener(function(alarm) {
     checkLive();
     if (handle_list.length > 0)
       saveSettings();
+  }
+});
+
+chrome.runtime.onStartup.addListener(function() {
+  if (initialized == false)
+  {
+    setTimeout(() => {
+      if (handle_list == undefined || handle_list.length == 0)
+        loadSettings();
+        
+      checkLive();
+    }, 3000);
   }
 });
 
