@@ -2,6 +2,8 @@ var handle_list = Array();
 var notified = Array();
 var autoRemove_seconds = 0;
 var initialized = false;
+var loadedID = 0;
+var loadedFull = 0;
 
 function saveSettings() {
   chrome.storage.local.set({"channels" : handle_list});
@@ -27,40 +29,41 @@ function loadSettings() {
 
   chrome.storage.local.get("notified").then((result) => {
     var lives = result["notified"];
-    if (lives == undefined) return;
-    
-    notified = Array();
-
-    for (var id of lives)
+    if (lives == undefined)
     {
-      fetch('https://www.youtube.com/watch?v=' + id, {
-        method: "GET",
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Accept-Language': 'en-US, en;q=0.5',
-      }}).then((response) => response.text())
-      .then((data) => {
-        var isLiveNow = data.split('"isLiveNow":')[1].split('"')[0];
-        if (isLiveNow)
-          notified.push(id);
-      });
+      notified = Array();
+      return;
+    }
+    else
+    {
+      loadedFull = lives.length;
+      notified = Array();
+      loadedFull = lives.length;
+
+      for (var id of lives)
+      {
+        fetch('https://www.youtube.com/watch?v=' + id, {
+          method: "GET",
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Accept-Language': 'en-US, en;q=0.5',
+        }}).then((response) => response.text())
+        .then((data) => {
+          var isLiveNow = data.split('"isLiveNow":')[1].split('"')[0];
+          if (isLiveNow && notified.includes(id) == false)
+            notified.push(id);
+
+          loadedID++;
+        });
+      }
     }
 
     console.log("previously notified list: ", notified);
+    chrome.alarms.create("loadcheck", {
+      delayInMinutes: 0,
+      periodInMinutes: 0.1,
+    });
   });
-
-  if (initialized == false)
-  {
-    //TODO: temporary delay for interval after complete load.
-    setTimeout(() => {
-      chrome.alarms.create("livecheck", {
-        delayInMinutes: 0,
-        periodInMinutes: 1
-      });
-    }, 1000);
-
-    initialized = true;
-  }
 }
 
 async function findLiveStream(handle, cb) {
@@ -93,6 +96,8 @@ function liveCallback(handle, idList, channelName, icon) {
         return;
 
     var notify = false;
+
+    console.log(notified.length);
 
     for (var id of idList)
     {
@@ -160,11 +165,12 @@ function checkLive() {
           var isLiveNow = data.split('"isLiveNow":')[1].split('"')[0];
           if (isLiveNow)
             new_notified.push(id);
+
+            
+          notified = new_notified;
+          saveSettings();
         });
       }
-
-      notified = new_notified;
-      saveSettings();
     }
 }
 
@@ -175,16 +181,28 @@ function refresh(renotify = false) {
   chrome.alarms.clear("livecheck");
   chrome.alarms.create("livecheck", {
     delayInMinutes: 0,
-    periodInMinutes: 5
+    periodInMinutes: 3
   });
 }
 
 chrome.alarms.onAlarm.addListener(function(alarm) {
   if (alarm.name == "livecheck")
   {
+    
     checkLive();
     if (handle_list.length > 0)
       saveSettings();
+  }
+  else if (alarm.name == "loadcheck")
+  {
+    if (loadedID >= loadedFull)
+    {
+      chrome.alarms.clear("loadcheck");
+      chrome.alarms.create("livecheck", {
+        delayInMinutes: 0,
+        periodInMinutes: 3
+      });
+    }
   }
 });
 

@@ -7,6 +7,12 @@ chrome extension to check the youtube live, without login or subscribe.
 
 ### You should know
 
+- 이젠 나도 모르겠다 버그 있을지 없을지도 모름 코드 보기도 피곤함
+
+  Idk there is bug or something now. I'm tired of this.
+
+  
+
 - 귀찮아서 ui 안 만들었음. 그래서 그냥 쓰기엔 드럽게 불편함.
 
   (not implemented ui cuz im lazy. so it is MUCH uncomfortable to use.)
