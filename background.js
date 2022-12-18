@@ -1,11 +1,12 @@
-var handle_list = [];
-var notified = [];
+var handle_list = Array();
+var notified = Array();
 var autoRemove_seconds = 0;
 var initialized = false;
 
 function saveSettings() {
   chrome.storage.local.set({"channels" : handle_list});
   chrome.storage.local.set({"autoRemove" : autoRemove_seconds});
+  chrome.storage.local.set({"notified" : notified})
 }
 
 function loadSettings() {
@@ -22,7 +23,44 @@ function loadSettings() {
     if (autoRemove_seconds == undefined)
       autoRemove_seconds = 0;
     console.log("auto remove after: ", autoRemove_seconds, " seconds. (only positive value works)");
-  })
+  });
+
+  chrome.storage.local.get("notified").then((result) => {
+    var lives = result["notified"];
+    if (lives == undefined) return;
+    
+    notified = Array();
+
+    for (var id of lives)
+    {
+      fetch('https://www.youtube.com/watch?v=' + id, {
+        method: "GET",
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Accept-Language': 'en-US, en;q=0.5',
+      }}).then((response) => response.text())
+      .then((data) => {
+        var isLiveNow = data.split('"isLiveNow":')[1].split('"')[0];
+        if (isLiveNow)
+          notified.push(id);
+      });
+    }
+
+    console.log("previously notified list: ", notified);
+  });
+
+  if (initialized == false)
+  {
+    //TODO: temporary delay for interval after complete load.
+    setTimeout(() => {
+      chrome.alarms.create("livecheck", {
+        delayInMinutes: 0,
+        periodInMinutes: 1
+      });
+    }, 1000);
+
+    initialized = true;
+  }
 }
 
 async function findLiveStream(handle, cb) {
@@ -58,7 +96,7 @@ function liveCallback(handle, idList, channelName, icon) {
 
     for (var id of idList)
     {
-      if (notified.indexOf(id) >= 0)
+      if (notified.includes(id))
         continue;
 
       notify = true;
@@ -108,7 +146,26 @@ function checkLive() {
         findLiveStream(handle, liveCallback);
     }
 
-    initialized = true;
+    var new_notified = [];
+    if (notified.length >= 100) {
+      for (var id of notified)
+      {
+        fetch('https://www.youtube.com/watch?v=' + id, {
+          method: "GET",
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Accept-Language': 'en-US, en;q=0.5',
+        }}).then((response) => response.text())
+        .then((data) => {
+          var isLiveNow = data.split('"isLiveNow":')[1].split('"')[0];
+          if (isLiveNow)
+            new_notified.push(id);
+        });
+      }
+
+      notified = new_notified;
+      saveSettings();
+    }
 }
 
 function refresh(renotify = false) {
@@ -132,23 +189,19 @@ chrome.alarms.onAlarm.addListener(function(alarm) {
 });
 
 chrome.runtime.onStartup.addListener(function() {
-  if (initialized == false)
-  {
     setTimeout(() => {
       if (handle_list == undefined || handle_list.length == 0)
         loadSettings();
         
       checkLive();
     }, 3000);
+});
 
-    initialized = true;
-  }
+chrome.tabs.onCreated.addListener(function(id) {
+  if (handle_list == undefined || handle_list.length == 0)
+    loadSettings();
+    checkLive();
 });
 
 loadSettings();
-
-chrome.alarms.create("livecheck", {
-  delayInMinutes: 0,
-  periodInMinutes: 5
-});
 /////
